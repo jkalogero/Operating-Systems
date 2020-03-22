@@ -4,8 +4,19 @@
 #include <sys/wait.h>
 #include <sys/types.h>
 #include <unistd.h>
+#include <fcntl.h>
 
 #define STREQUAL(x, y) ( strncmp((x), (y), strlen(y) ) == 0 )
+
+/* File Descriptors for stdin and stdout */
+#define FD_STDIN 0
+#define FD_STDOUT 1
+
+/* Arbitrary buffer size */
+#define BUFFER_SIZE 128
+
+/* User read-write, group read, others read */
+#define PERMS 0644
 
 void usage(const char *prog) {
     printf("Usage: %s [--input filname --\n", prog);
@@ -14,7 +25,7 @@ void usage(const char *prog) {
 
 int main(int argc, char** argv) {
     const char *chosen_file = NULL, *key = NULL;
-    if (argc != 3){
+    if (argc != 5){
         printf("Error,wrong number of arguments given");
         return 0;
     } 
@@ -56,8 +67,36 @@ int main(int argc, char** argv) {
     if (pid == -1) {
         perror("fork");
     } else if (pid == 0) {
+        // child's code
         printf("CHILD: My pid is %d, my father is %d\n", getpid(), getppid());
-    } else {
+        int n_read, n_write;
+        char buffer[BUFFER_SIZE];
+
+        int fd_in = open(chosen_file, O_RDONLY);
+        if (fd_in == -1) {
+            perror("open");
+            exit(-1);
+        }
+        do {
+            // Read at most BUFFER_SIZE bytes, returns number of bytes read
+            n_read = read(fd_in, buffer, BUFFER_SIZE);
+            if (n_read == -1) {
+                perror("read");
+                exit(-1);
+            }
+
+            // Write at most n_read bytes (why?), returns number of bytes written
+            n_write = write(FD_STDOUT, buffer, n_read);
+            if (n_write < n_read) {
+                perror("write");
+                exit(-1);
+            }
+        } while (n_read > 0); // (why?)
+
+        // Close input file
+        close(fd_in);
+    }
+    else {
         printf("PARENT: My pid is %d, my father is %d\n", getpid(), getppid());
         wait(NULL);
     }
