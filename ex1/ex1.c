@@ -18,9 +18,42 @@
 /* User read-write, group read, others read */
 #define PERMS 0644
 
+/* Enum for encryption mode */
+typedef enum {
+    ENCRYPT,
+    DECRYPT
+} encrypt_mode;
+
 void usage(const char *prog) {
     printf("Usage: %s [--input filname --\n", prog);
     exit(EXIT_FAILURE);
+}
+
+char caesar(unsigned char ch, encrypt_mode mode, int key)
+{
+    if (ch >= 'a' && ch <= 'z') {
+        if (mode == ENCRYPT) {
+            ch += key;
+            if (ch > 'z') ch -= 26;
+        } else {
+            ch -= key;
+            if (ch < 'a') ch += 26;
+        }
+        return ch;
+    }
+
+    if (ch >= 'A' && ch <= 'Z') {
+        if (mode == ENCRYPT) {
+            ch += key;
+            if (ch > 'Z') ch -= 26;
+        } else {
+            ch -= key;
+            if (ch < 'A') ch += 26;
+        }
+        return ch;
+    }
+
+    return ch;
 }
 
 int main(int argc, char** argv) {
@@ -70,7 +103,7 @@ int main(int argc, char** argv) {
         // child's code
         printf("CHILD: My pid is %d, my father is %d\n", getpid(), getppid());
         int n_read, n_write;
-        char buffer[BUFFER_SIZE];
+        char buffer[BUFFER_SIZE], encrypted[BUFFER_SIZE];
 
         int fd_in = open(chosen_file, O_RDONLY);
         if (fd_in == -1) {
@@ -95,6 +128,14 @@ int main(int argc, char** argv) {
 
         // Close input file
         close(fd_in);
+
+        for (int i=0; i< BUFFER_SIZE; i++){
+            printf("buffer[i] = %c\n", buffer[i]);
+            encrypted[i] = caesar(buffer[i], ENCRYPT, (int) key);
+            printf("encrypted[i] = %c\n", encrypted[i]);
+            n_write = write(FD_STDOUT, encrypted, n_read);
+        }
+
     }
     else {
         printf("PARENT: My pid is %d, my father is %d\n", getpid(), getppid());
