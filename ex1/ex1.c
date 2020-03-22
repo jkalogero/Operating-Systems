@@ -14,7 +14,10 @@ void usage(const char *prog) {
 
 int main(int argc, char** argv) {
     const char *chosen_file = NULL, *key = NULL;
-
+    if (argc != 3){
+        printf("Error,wrong number of arguments given");
+        return 0;
+    } 
     // print arguments
     for (int i = 1; i < argc; i++) {
         printf("Argument %d: '%s'\n", i, argv[i]);
