@@ -136,7 +136,6 @@ int main(int argc, char** argv) {
             // write in encrypted.txt file
             write_en = write(fd_in_enc, encrypted, BUFFER_SIZE);
             if (write_en < BUFFER_SIZE){
-                printf("ERROR NI PRINTING");
                 perror("write");
                 exit(-1);
             }
@@ -148,7 +147,6 @@ int main(int argc, char** argv) {
         // PARENT'S CODE
         printf("PARENT: My pid is %d, my father is %d\n", getpid(), getppid());
         wait(NULL);
-    }
     pid_t pid2 = fork();
     if (pid2 == -1) {
         perror("fork");
@@ -159,6 +157,7 @@ int main(int argc, char** argv) {
      else {
         printf("PARENT: My pid is %d, my father is %d\n", getpid(), getppid());
         wait(NULL);
+    }
     }
     
     return 0;
