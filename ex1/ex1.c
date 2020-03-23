@@ -58,14 +58,12 @@ char caesar(unsigned char ch, encrypt_mode mode, int key)
 
 int main(int argc, char** argv) {
     const char *chosen_file = NULL, *key = NULL;
+    int write_en;
     if (argc != 5){
         printf("Error,wrong number of arguments given");
         return 0;
     } 
-    // print arguments
-    for (int i = 1; i < argc; i++) {
-        printf("Argument %d: '%s'\n", i, argv[i]);
-    }
+
 
     for (int i = 1; i < argc; i++) {
         if (STREQUAL(argv[i], "--input")) {
@@ -111,33 +109,43 @@ int main(int argc, char** argv) {
             exit(-1);
         }
         do {
-            // Read at most BUFFER_SIZE bytes, returns number of bytes read
+            // Read from file
             n_read = read(fd_in, buffer, BUFFER_SIZE);
             if (n_read == -1) {
                 perror("read");
                 exit(-1);
             }
 
-            // Write at most n_read bytes (why?), returns number of bytes written
-            n_write = write(FD_STDOUT, buffer, n_read);
-            if (n_write < n_read) {
-                perror("write");
-                exit(-1);
-            }
         } while (n_read > 0); // (why?)
 
         // Close input file
         close(fd_in);
 
+        // encryption
         for (int i=0; i< BUFFER_SIZE; i++){
-            printf("buffer[i] = %c\n", buffer[i]);
             encrypted[i] = caesar(buffer[i], ENCRYPT, atoi(key));
-            printf("encrypted[i] = %c\n", encrypted[i]);
-            n_write = write(FD_STDOUT, encrypted, n_read);
         }
 
+        // open encrypted.txt file
+        int fd_in_enc = open("encrypted.txt", O_WRONLY);
+        if (fd_in_enc == -1){
+            perror("open");
+            exit(-1);
+        }
+        else{
+            // write in encrypted.txt file
+            write_en = write(fd_in_enc, encrypted, BUFFER_SIZE);
+            if (write_en < BUFFER_SIZE){
+                printf("ERROR NI PRINTING");
+                perror("write");
+                exit(-1);
+            }
+            // close encrypted.txt
+            close(fd_in_enc);
+        }
     }
     else {
+        // PARENT'S CODE
         printf("PARENT: My pid is %d, my father is %d\n", getpid(), getppid());
         wait(NULL);
     }
