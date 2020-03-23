@@ -131,7 +131,7 @@ int main(int argc, char** argv) {
 
         for (int i=0; i< BUFFER_SIZE; i++){
             printf("buffer[i] = %c\n", buffer[i]);
-            encrypted[i] = caesar(buffer[i], ENCRYPT, (int) key);
+            encrypted[i] = caesar(buffer[i], ENCRYPT, atoi(key));
             printf("encrypted[i] = %c\n", encrypted[i]);
             n_write = write(FD_STDOUT, encrypted, n_read);
         }
