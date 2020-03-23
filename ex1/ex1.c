@@ -141,6 +141,17 @@ int main(int argc, char** argv) {
         printf("PARENT: My pid is %d, my father is %d\n", getpid(), getppid());
         wait(NULL);
     }
+    pid_t pid2 = fork();
+    if (pid2 == -1) {
+        perror("fork");
+    } else if (pid2 == 0) {
+        printf("child2: My pid is %d, my father is %d\n", getpid(), getppid());
+        // child's code
+    }
+     else {
+        printf("PARENT: My pid is %d, my father is %d\n", getpid(), getppid());
+        wait(NULL);
+    }
     
     return 0;
 }
