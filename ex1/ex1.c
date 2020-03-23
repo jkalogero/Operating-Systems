@@ -141,23 +141,54 @@ int main(int argc, char** argv) {
             }
             // close encrypted.txt
             close(fd_in_enc);
+            exit(0);
         }
     }
     else {
         // PARENT'S CODE
         printf("PARENT: My pid is %d, my father is %d\n", getpid(), getppid());
         wait(NULL);
-    pid_t pid2 = fork();
-    if (pid2 == -1) {
-        perror("fork");
-    } else if (pid2 == 0) {
-        printf("child2: My pid is %d, my father is %d\n", getpid(), getppid());
-        // child's code
-    }
-     else {
-        printf("PARENT: My pid is %d, my father is %d\n", getpid(), getppid());
-        wait(NULL);
-    }
+        pid_t pid2 = fork();
+        if (pid2 == -1) {
+            perror("fork");
+        } else if (pid2 == 0) {
+            // CHILD'S CODE
+            printf("child2: My pid is %d, my father is %d\n", getpid(), getppid());
+            char text[BUFFER_SIZE], decrypted[BUFFER_SIZE];
+            int fd_in_2 = open("encrypted.txt", O_RDONLY);
+            if (fd_in_2 == -1){
+                perror("open");
+                exit(-1);
+            }
+            else{
+                int n_read_2, n_write_2;
+                    n_read_2 = read(fd_in_2, text, BUFFER_SIZE);
+                    if (n_read_2 == -1) {
+                        perror("read");
+                        exit(-1);
+                    }
+
+                // encryption
+                for (int i=0; i< BUFFER_SIZE; i++){
+                    decrypted[i] = caesar(text[i], DECRYPT, atoi(key));
+                }
+
+                // do {
+                    // Write at most n_read bytes (why?), returns number of bytes written
+                    n_write_2 = write(FD_STDOUT, decrypted, n_read_2);
+                    if (n_write_2 < n_read_2) {
+                        perror("write");
+                        exit(-1);
+                    }
+                // } while (n_read_2 > 0); // (why?)
+                exit(0);
+            }
+        }
+         else {
+            printf("PARENT: My pid is %d, my father is %d\n", getpid(), getppid());
+            wait(NULL);
+            exit(0);
+        }
     }
     
     return 0;
