@@ -99,7 +99,7 @@ int main(int argc, char** argv) {
         perror("fork");
     } else if (pid == 0) {
         // child's code
-        printf("CHILD: My pid is %d, my father is %d\n", getpid(), getppid());
+        printf("CHILD 1: My pid is %d, my father is %d\n", getpid(), getppid());
         int n_read, n_write;
         char buffer[BUFFER_SIZE], encrypted[BUFFER_SIZE];
 
@@ -153,7 +153,7 @@ int main(int argc, char** argv) {
             perror("fork");
         } else if (pid2 == 0) {
             // CHILD'S CODE
-            printf("child2: My pid is %d, my father is %d\n", getpid(), getppid());
+            printf("CHILD 2: My pid is %d, my father is %d\n", getpid(), getppid());
             char text[BUFFER_SIZE], decrypted[BUFFER_SIZE];
             int fd_in_2 = open("encrypted.txt", O_RDONLY);
             if (fd_in_2 == -1){
@@ -173,19 +173,17 @@ int main(int argc, char** argv) {
                     decrypted[i] = caesar(text[i], DECRYPT, atoi(key));
                 }
 
-                // do {
-                    // Write at most n_read bytes (why?), returns number of bytes written
-                    n_write_2 = write(FD_STDOUT, decrypted, n_read_2);
-                    if (n_write_2 < n_read_2) {
-                        perror("write");
-                        exit(-1);
-                    }
-                // } while (n_read_2 > 0); // (why?)
+                // Print in console
+                n_write_2 = write(FD_STDOUT, decrypted, n_read_2);
+                if (n_write_2 < n_read_2) {
+                    perror("write");
+                    exit(-1);
+                }
+                printf("\n");
                 exit(0);
             }
         }
          else {
-            printf("PARENT: My pid is %d, my father is %d\n", getpid(), getppid());
             wait(NULL);
             exit(0);
         }
