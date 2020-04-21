@@ -20,6 +20,7 @@ int main(int argc, char** argv) {
     pid_t pid[argc-1];
     int status;
     // start forking...
+    printf("[Father process : %d] Was created and will create %d children.\n", getpid(), argc-1);
     for (int i = 0; i < argc -1; i++){
         int delay = atoi(argv[i+1]);
         pid[i] = fork();
@@ -28,31 +29,34 @@ int main(int argc, char** argv) {
         } else if (pid[i] == 0) {
             // child's code
             printf("[Child Process %d: %d] Was created and will pause!\n", i+1, getpid());
-            pause();
-            printf("[Child Process %d: %d] Is starting!\n", i, getpid());
+            // kill(getppid(), SIGCONT);
+            raise(SIGSTOP);
+            printf("[Child Process %d: %d] Is starting!\n", i+1, getpid());
             // main function of process
             int count = 0;
             while(1){
                 count++;
                 sleep(delay);
             }
+            exit(0);
         }
         else{
             // parent's code
-            // printf("Will be waiting for child %d\n", pid[i]);
-            waitpid(pid[i], &status, WUNTRACED); //kati edw thelei gia na perimenei mexri na pane ola pause...
-            printf("Sending SIGCONT to process %d\n", pid[i]);
-            kill(pid[i], SIGCONT);
 
-
-            // for (int i = 0; i < argc-1; i++){
-            //     printf("Will be waiting for child %d\n", pid[i]);
-            //     waitpid(pid[i], &status, 0);
-            //     kill(pid[i], SIGCONT);
-            // }
 
         }
     }
-    // for (int i=0; i<argc-1; i++){wait(NULL);}
+    for(int i=0; i<argc-1; i++){
+        int ret, wstatus;
+        ret = waitpid(pid[i], &wstatus, WUNTRACED);
+        while(ret<=0 || !WIFSTOPPED(wstatus)){ret = waitpid(pid[i], &wstatus, WUNTRACED);}
+
+    }
+    for (int i=0; i<argc-1;i++){
+        kill(pid[i], SIGCONT);
+        // wait(NULL);
+    }
+        while(1){}
+    
     return 0;
 }
