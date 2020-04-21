@@ -17,21 +17,40 @@ int main(int argc, char** argv) {
         printf("Error,please provide at least one parameter");
         return 0;
     }
-    printf("argc-1 = %d\n", argc-1);
+    pid_t pid[argc-1];
+    int status;
     // start forking...
     for (int i = 0; i < argc -1; i++){
-        int d = atoi(argv[i+1]);
-        pid_t pid = fork();
-        if (pid == -1) {
+        int delay = atoi(argv[i+1]);
+        pid[i] = fork();
+        if (pid[i] == -1) {
             perror("fork");
-        } else if (pid == 0) {
+        } else if (pid[i] == 0) {
             // child's code
-            printf("Im child no %d , my pid is %d, my parent's pid = %d\n",i+1, getpid(), getppid());
+            printf("[Child Process %d: %d] Was created and will pause!\n", i+1, getpid());
             pause();
+            printf("[Child Process %d: %d] Is starting!\n", i, getpid());
+            // main function of process
+            int count = 0;
+            while(1){
+                count++;
+                sleep(delay);
+            }
         }
         else{
-            // printf("My pid is %d, my parent's pid = %d\n", getpid(), getppid());
             // parent's code
+            // printf("Will be waiting for child %d\n", pid[i]);
+            waitpid(pid[i], &status, WUNTRACED); //kati edw thelei gia na perimenei mexri na pane ola pause...
+            printf("Sending SIGCONT to process %d\n", pid[i]);
+            kill(pid[i], SIGCONT);
+
+
+            // for (int i = 0; i < argc-1; i++){
+            //     printf("Will be waiting for child %d\n", pid[i]);
+            //     waitpid(pid[i], &status, 0);
+            //     kill(pid[i], SIGCONT);
+            // }
+
         }
     }
     // for (int i=0; i<argc-1; i++){wait(NULL);}
