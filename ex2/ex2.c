@@ -4,6 +4,7 @@
 #include <sys/wait.h>
 #include <signal.h>
 #include <math.h>
+#include <assert.h>
 #include <time.h>
 #include <errno.h>
 
@@ -12,8 +13,6 @@ int buffer = 0;
 int num_of_proc;
 pid_t pid[1000000];
 int delay[1000000];
-int list_of_signals[35] = { SIGABRT , SIGALRM , SIGBUS, SIGCHLD, SIGCLD, SIGCONT, SIGFPE, SIGHUP, SIGILL, SIGIO, SIGINT, SIGIOT, SIGKILL, SIGPIPE, SIGPOLL, SIGPROF, SIGPWR, SIGQUIT, SIGSEGV, SIGSTKFLT, SIGSTOP, SIGTSTP, SIGSYS, SIGTERM, SIGTRAP, SIGTTIN, SIGTTOU, SIGURG, SIGUSR1, SIGUSR2, SIGVTALRM, SIGXCPU };
-
 
 
 int msleep(long msec)
@@ -52,15 +51,11 @@ void child_handler(int sig){
         exit(0);
     }
     else{
-        printf("No action for this signal.\n");
+        printf("PID = %d....No action for signal %d.\n", getpid(), sig);
     }
-    // int remaining = nanosleep(0,0);
-    // printf("remaining =%d\n", remaining);
-    // nanosleep(float(remaining/1), float(remaining%1));
 }
 
 void father_handler(int sig){
-    // sleep(10);
     if (sig == 10){
         printf("\n[Father process: %d] Will ask current values (SIGUSR1) from all active children processes.\n", getpid());
         for (int i = 0; i < num_of_proc; i++) kill(pid[i], SIGUSR1);
@@ -75,7 +70,7 @@ void father_handler(int sig){
         }
     }
     else{
-        printf("No action for this signal.\n");
+        printf("PID = %d....No action for signal %d.\n", getpid(), sig);
     }
 }
 
@@ -108,7 +103,7 @@ int main(int argc, char** argv) {
         } 
         else if (pid[i] == 0) {
             // child's code
-            alarm(15);
+            alarm(50);
             num_of_proc = i+1;
             printf("[Child Process %d: %d] Was created and will pause!\n", num_of_proc, getpid());
             while(raise(SIGSTOP) != 0){}
@@ -117,19 +112,20 @@ int main(int argc, char** argv) {
 	        struct sigaction action;
             action.sa_flags = 0;
             sigemptyset(&action.sa_mask);
-            sigaddset(&action.sa_mask, SIGSTOP);
 	        action.sa_handler=child_handler;
-            // for (int i = 0; i < 35; i++) sigaction(list_of_signals[i], &action, NULL);
-            if (sigaction(SIGUSR1, &action, NULL) ==  -1) printf("Failed to set up handler for SIGUSR1!");
-            if (sigaction(SIGUSR2, &action, NULL) ==  -1) printf("Failed to set up handler for SIGUSR2!");
-            if (sigaction(SIGTERM, &action, NULL) ==  -1) printf("Failed to set up handler for SIGTERM!");
-            if (sigaction(SIGALRM, &action, NULL) ==  -1) printf("Failed to set up handler for SIGALRM!");
+            for (int i = 1; i < 35; i++){
+                // printf("i= %d\n", i);
+                if (i != 9  &&i != 19 && i != 32 && i != 33 && i!=17) assert (sigaction(i, &action, NULL) == 0);
+            }
+                
+            // if (sigaction(SIGUSR1, &action, NULL) ==  -1) printf("Failed to set up handler for SIGUSR1!");
+            // if (sigaction(SIGUSR2, &action, NULL) ==  -1) printf("Failed to set up handler for SIGUSR2!");
+            // if (sigaction(SIGTERM, &action, NULL) ==  -1) printf("Failed to set up handler for SIGTERM!");
+            // if (sigaction(SIGALRM, &action, NULL) ==  -1) printf("Failed to set up handler for SIGALRM!");
             while(1){
                 buffer++;
-                // nanosleep(pow(10, 9)*float(delay[i], 0));
                 double nano_delay = (double) delay[i];
                 msleep(nano_delay*pow(10, 3));
-                printf("AAAAAAAAAAAAAAAA\n");
             }
             exit(0);
         }
@@ -147,13 +143,15 @@ int main(int argc, char** argv) {
     struct sigaction action;
     action.sa_flags = 0;
     sigemptyset(&action.sa_mask);
-    sigaddset(&action.sa_mask, SIGSTOP);
     action.sa_handler=father_handler;
+    for (int i = 1; i < 35; i++){
+        if (i != 9  &&i != 19 && i != 32 && i != 33 && i!=17) assert (sigaction(i, &action, NULL) == 0);
+    }
     // for (int i = 0; i < 35; i++) sigaction(list_of_signals[i], &action, NULL);
-    if (sigaction(SIGUSR1, &action, NULL) ==  -1) printf("Failed to set up handler for SIGUSR1!");
-    if (sigaction(SIGUSR2, &action, NULL) ==  -1) printf("Failed to set up handler for SIGUSR2!");
-    if (sigaction(SIGTERM, &action, NULL) ==  -1) printf("Failed to set up handler for SIGTERM!");
-    if (sigaction(SIGINT, &action, NULL) ==  -1) printf("Failed to set up handler for SIGINT!");
+    // if (sigaction(SIGUSR1, &action, NULL) ==  -1) printf("Failed to set up handler for SIGUSR1!");
+    // if (sigaction(SIGUSR2, &action, NULL) ==  -1) printf("Failed to set up handler for SIGUSR2!");
+    // if (sigaction(SIGTERM, &action, NULL) ==  -1) printf("Failed to set up handler for SIGTERM!");
+    // if (sigaction(SIGINT, &action, NULL) ==  -1) printf("Failed to set up handler for SIGINT!");
     // while(1){}
     // waiting until all my childen die
     for(int i=0; i<num_of_proc; i++){
