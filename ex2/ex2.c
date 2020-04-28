@@ -10,7 +10,7 @@
 
 
 int buffer = 0;
-int num_of_proc;
+int num_of_proc, living_children;
 pid_t pid[1000000];
 int delay[1000000];
 
@@ -44,6 +44,7 @@ void child_handler(int sig){
     else if (sig == 15){
 
         printf("[Child Process %d: %d] Exiting...\n", num_of_proc, getpid());
+        kill(getppid(), 31);
         exit(0);
     }
     else if (sig == 14){
@@ -68,6 +69,10 @@ void father_handler(int sig){
             printf("[Father process: %d] Will terminate (SIGTERM) child process %d: %d\n", getpid(), i+1, pid[i]);
             kill(pid[i], SIGTERM);
         }
+    }
+    else if (sig == 31){
+        living_children--;
+        printf("[Father process: %d] Waiting for %d children.\n", getpid(), living_children);
     }
     else{
         printf("PID = %d....No action for signal %d.\n", getpid(), sig);
@@ -94,6 +99,7 @@ int main(int argc, char** argv) {
     printf("Maximum execution time of children is set to 50 seconds.\n\n");
 
     num_of_proc = argc-1;
+    living_children = argc -1;
     int status;
     // start forking...
     printf("[Father process : %d] Was created and will create %d children.\n", getpid(), num_of_proc);
