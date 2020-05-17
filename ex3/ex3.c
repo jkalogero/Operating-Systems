@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include <unistd.h>
 #include <sys/wait.h>
+#include <sys/types.h>
 #include <signal.h>
 #include <string.h>
 
@@ -9,7 +10,34 @@
 
 int num_of_proc;
 pid_t pid[1000000];
-int fd[1000000][2][2];
+int pd[1000000][2][2]; //mallon oxi etsi.. theloume omws 2 pipes gia kathe paidi... kapou mporei na thelei kai malloc
+pipe(pd); //na tsekaroume kai slack
+
+
+void father_handler(int sig){
+    if (sig == 10){
+        printf("\n[Father process: %d] Will ask current values (SIGUSR1) from all active children processes.\n", getpid());
+        for (int i = 0; i < num_of_proc; i++) kill(pid[i], SIGUSR1);
+    }
+    else if (sig == 12){
+        printf("[Process %d] Echo!\n", getpid());
+    }
+    else if (sig == 15 || sig == 2){
+        for (int i = 0; i < num_of_proc; i++){
+            printf("[Father process: %d] Will terminate (SIGTERM) child process %d: %d\n", getpid(), i+1, pid[i]);
+            kill(pid[i], SIGTERM);
+        }
+    }
+    else if (sig == 31){
+        living_children--;
+        printf("[Father process: %d] Waiting for %d children.\n", getpid(), living_children);
+    }
+    else{
+        printf("PID = %d....No action for signal %d.\n", getpid(), sig);
+    }
+}
+
+
 
 int main(int argc, char** argv) {
     int distribution;   //value 0 is for round-robin and value 1 for random
@@ -57,6 +85,7 @@ int main(int argc, char** argv) {
             // child's code
             num_of_proc = i +1;
             printf("[Child Process %d: %d] Was created with father's pid: %d\n", num_of_proc, getpid(), getppid());
+
         }
         else{
             // father's code
