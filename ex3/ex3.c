@@ -6,7 +6,9 @@
 #include <signal.h>
 #include <string.h>
 #include <sys/select.h>
-
+#include <assert.h>
+#include <ctype.h>
+#include <stdbool.h>
 
 #define STREQUAL(x, y) ( strncmp((x), (y), strlen(y) ) == 0 )
 
@@ -34,14 +36,41 @@
 
 #define MAX(a, b) ((a) > (b) ? (a) : (b))
 
+int num_of_proc;
+pid_t pid[100000];
+
+void father_handler(int sig){
+    if (sig == 15){
+        for (int i = 0; i < num_of_proc; i++){
+            printf("[Father process: %d] Will terminate (SIGTERM) child process %d: %d\n", getpid(), i+1, pid[i]);
+            kill(pid[i], SIGTERM);
+        }
+    }
+    else{
+        printf("PID = %d....No action for signal %d.\n", getpid(), sig);
+    }
+}
+
+bool isNumber(char number[])
+{
+    int i = 0;
+    for (; number[i] != 0; i++){
+        if (!isdigit(number[i]))
+            return false;
+    }
+    return true;
+}
+
+
+
+
+
 int main(int argc, char** argv) {
     int distribution;   //value 0 is for round-robin and value 1 for random
     char *str_distribution;
     int val = 0, len;
     int rec;
-    int num_of_proc;
     int num_of_pipe;
-    pid_t pid[100000];
     int my_pid;
 
     // no argument is provided
@@ -96,24 +125,28 @@ int main(int argc, char** argv) {
             printf("Child with pid (%d) was created from father with pid (%d)\n",my_pid,getppid());
             close(fd[i][FATHER_READ]);
             close(fd[i][FATHER_WRITE]);
-            // len = read(fd[i][CHILD_READ], &val , sizeof(val));
-            // // check if child managed to read
-            // if (len <= 0)
-            // {
-            //     perror("Child: Failed to read data from pipe");
-            //     exit(EXIT_FAILURE);
-            // }
-            // else{
-            //     printf("Child(%d): Just received from father: %d", my_pid, val);
-            //     val += 1;
-            //     if (write(fd[i][CHILD_WRITE], &val, sizeof(val)) < 0)
-            //     {
-            //         perror("Child: Failed to write response value");
-            //         exit(EXIT_FAILURE);
-            //     }
-            //     else printf("Child(%d): Sending back to father: %d", my_pid, val);
-            // }
-            //do the work 
+            int val;
+            while(1){
+                len = read(fd[i][CHILD_READ], &val , sizeof(val));
+                // check if child managed to read
+                if (len <= 0)
+                {
+                    perror("Child: Failed to read data from pipe");
+                    exit(EXIT_FAILURE);
+                }
+                else{
+                    printf("[Child %d] [%d] Child received %d!"WHITE"\n", i+1, my_pid, val);
+                    val += 1;
+                    sleep(5);
+                    if (write(fd[i][CHILD_WRITE], &val, sizeof(val)) < 0)
+                    {
+                        perror("Child: Failed to write response value");
+                        exit(EXIT_FAILURE);
+                    }
+                    else printf("[Child %d] [%d] Child finished hard work, writing back %d\n", i+1 , my_pid, val);
+                }
+
+            }
             close(fd[i][CHILD_READ]);
             close(fd[i][CHILD_WRITE]);
             return 0;
@@ -135,43 +168,43 @@ int main(int argc, char** argv) {
             //     exit(EXIT_FAILURE);
             // }
             // else printf("Just received from child %d val = %d!\n", i, val);
-            wait(NULL);
-            close(fd[i][FATHER_READ]);
-            close(fd[i][FATHER_WRITE]);
+            // wait(NULL);
         }
     }
     my_pid = getpid();
+
+    // struct for sigaction
+    struct sigaction action;
+    action.sa_flags = 0;
+    sigemptyset(&action.sa_mask);
+    action.sa_handler=father_handler;
+    assert (sigaction(15, &action, NULL) == 0);
+
+
     while (1) {
         fd_set inset;
         int maxfd = 0;
-        printf("1\n");
         FD_ZERO(&inset);                // we must initialize before each call to select
-        printf("2\n");
         FD_SET(STDIN_FILENO, &inset);   // select will check for input from stdin
+        
+        
         for (int i = 0; i < num_of_proc; i++) {
             FD_SET(fd[i][FATHER_READ], &inset);     // select will check for input from each pipe
             maxfd = MAX(maxfd, fd[i][FATHER_READ]);
-            printf("fd[%d][FATHER_READ] = %d\n",i, fd[i][FATHER_READ]);
         }
-        printf("3\n");
-        printf("STDIN_FILENO = %d\n", STDIN_FILENO);
+
+
         // select only considers file descriptors that are smaller than maxfd
         maxfd = MAX(STDIN_FILENO,maxfd) + 1;    //pd[0][num_of_proc-1] is bigger than any other pid in pid array
 
+        // printf("maxfd = %d\n", maxfd);
 
-
-        printf("maxfd = %d\n", maxfd);
-
-        printf("4\n");
         // wait until any of the input file descriptors are ready to receive
-        int ready_fds = select(maxfd, &inset, NULL, NULL, NULL);
-        printf("\t\tAAAAAA\n");
+        int ready_fds = select(1000, &inset, NULL, NULL, NULL);
         if (ready_fds <= 0) {
-            printf("\n\n\n\n\n\nERRORRRRRRRRRR\n\n\n\n\n");
             perror("select");
             continue;                                       // just try again
         }
-        printf("5\n");
         // user has typed something, we can read from stdin without blocking
         if (FD_ISSET(STDIN_FILENO, &inset)) {
             char buffer[101];
@@ -185,14 +218,28 @@ int main(int argc, char** argv) {
 
             printf(BLUE"Got user input: '%s'"WHITE"\n", buffer);
 
-            if (n_read >= 4 && strncmp(buffer, "exit", 4) == 0) {
+
+            // help
+            if (n_read == 5 && strncmp(buffer, "help", 4) == 0) {
+                printf(MAGENTA"Type a number to send job to a child!\n");
+            }
+
+            // exit
+            else if (n_read == 5 && strncmp(buffer, "exit", 4) == 0) {
                 // user typed 'exit', kill child and exit properly
+                for (int i  = 0; i < num_of_proc; i++){
+                    close(fd[i][FATHER_READ]);
+                    close(fd[i][FATHER_WRITE]);
+                }
                 kill(my_pid, SIGTERM);                         // error checking!
                 wait(NULL);                                 // error checking!
+
                 exit(0);
             }
+
+            // user entered integer
+            else if (isNumber(buffer)) printf("GOT INTEGER\n");
         }
-        printf("6\n");
         // someone has written bytes to the pipe, we can read without blocking
         for (int i = 0; i < num_of_proc; i++){
             if (FD_ISSET(fd[i][FATHER_READ], &inset)) {
