@@ -12,9 +12,6 @@
 
 #define STREQUAL(x, y) ( strncmp((x), (y), strlen(y) ) == 0 )
 
-// pipe me 4 akra: 0, 2: write, 1,3: read
-// 0-1: father-> child,
-// 2-3: child -> father
 
 // father (2) 3 --------------> 2 (3) child
 // father 0 (1) <-------------- (0) 1 child
@@ -42,7 +39,7 @@ pid_t pid[100000];
 void father_handler(int sig){
     if (sig == 15){
         for (int i = 0; i < num_of_proc; i++){
-            printf("[Father process: %d] Will terminate (SIGTERM) child process %d: %d\n", getpid(), i+1, pid[i]);
+            printf(YELLOW"[Father process: %d] Will terminate (SIGTERM) child process %d: %d"WHITE"\n", getpid(), i+1, pid[i]);
             kill(pid[i], SIGTERM);
         }
     }
@@ -60,9 +57,6 @@ bool isNumber(char number[])
     }
     return true;
 }
-
-
-
 
 
 int main(int argc, char** argv) {
@@ -214,7 +208,7 @@ int main(int argc, char** argv) {
                 }
                 kill(my_pid, SIGTERM);                         // error checking!
                 wait(NULL);                                 // error checking!
-                printf("All children terminated..\n");
+                printf(RED"All of my children are now dead...\nExiting."WHITE"\n");
 
                 exit(0);
             }
@@ -231,6 +225,7 @@ int main(int argc, char** argv) {
                 else if (distribution == 1){
                     choose_pipe = rand()%num_of_proc;
                 }
+                printf(CYAN"[Parent] Assigned %d to child %d"WHITE"\n", val, choose_pipe);
                 if (write(fd[choose_pipe][FATHER_WRITE], &val, sizeof(val)) != sizeof(val)){
                     perror("Parent: Failed to send value to child\n");
                     exit(EXIT_FAILURE);
