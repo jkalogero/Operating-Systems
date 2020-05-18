@@ -67,11 +67,10 @@ bool isNumber(char number[])
 
 int main(int argc, char** argv) {
     int distribution;   //value 0 is for round-robin and value 1 for random
-    char *str_distribution;
     int val = 0, len;
-    int rec;
     int num_of_pipe;
     int my_pid;
+    int index = 0;
 
     // no argument is provided
     if (argc < 2){
@@ -137,7 +136,7 @@ int main(int argc, char** argv) {
                 else{
                     printf("[Child %d] [%d] Child received %d!"WHITE"\n", i+1, my_pid, val);
                     val += 1;
-                    sleep(5);
+                    // sleep(5);
                     if (write(fd[i][CHILD_WRITE], &val, sizeof(val)) < 0)
                     {
                         perror("Child: Failed to write response value");
@@ -154,21 +153,6 @@ int main(int argc, char** argv) {
         else{
             close(fd[i][CHILD_READ]);
             close(fd[i][CHILD_WRITE]);
-            //father doing staff
-            // sleep(5);
-            // val = 9;
-            // if (write(fd[i][FATHER_WRITE], &val, sizeof(val)) != sizeof(val)){
-            //     perror("Parent: Failed to send value to child\n");
-            //     exit(EXIT_FAILURE);
-            // }
-            // // read response
-            // len = read(fd[i][FATHER_READ], &val, sizeof(val));
-            // if (len <= 0){
-            //     printf("Parent failed to read..\n");
-            //     exit(EXIT_FAILURE);
-            // }
-            // else printf("Just received from child %d val = %d!\n", i, val);
-            // wait(NULL);
         }
     }
     my_pid = getpid();
@@ -238,7 +222,34 @@ int main(int argc, char** argv) {
             }
 
             // user entered integer
-            else if (isNumber(buffer)) printf("GOT INTEGER\n");
+            else if (isNumber(buffer)){
+                val = atoi (buffer);
+                printf("GOT INTEGER\n");
+                int choose_pipe;
+                if (distribution == 0){
+                    choose_pipe = index;
+                    if (index == num_of_proc-1) index = 0;
+                    else index++;
+                }
+                else if (distribution == 1){
+                    choose_pipe = rand()%num_of_proc;
+                }
+                if (write(fd[choose_pipe][FATHER_WRITE], &val, sizeof(val)) != sizeof(val)){
+                    perror("Parent: Failed to send value to child\n");
+                    exit(EXIT_FAILURE);
+                }
+                // read response
+                len = read(fd[choose_pipe][FATHER_READ], &val, sizeof(val));
+                if (len <= 0){
+                    printf("Parent failed to read..\n");
+                    exit(EXIT_FAILURE);
+                }
+                else printf("[Parent] received result from child %d --> %d\n", choose_pipe+1, val);
+                // wait(NULL);
+            }
+            else{
+                printf(MAGENTA"Type a number to send job to a child!\n");
+            }
         }
         // someone has written bytes to the pipe, we can read without blocking
         for (int i = 0; i < num_of_proc; i++){
