@@ -121,7 +121,7 @@ int main(int argc, char** argv) {
         }
         else if (pid[i] == 0){
             my_pid = getpid();
-            printf("Child with pid (%d) was created from father with pid (%d)\n",my_pid,getppid());
+            printf(YELLOW"Child with pid (%d) was created from father with pid (%d)"WHITE"\n",my_pid,getppid());
             close(fd[i][FATHER_READ]);
             close(fd[i][FATHER_WRITE]);
             int val;
@@ -134,15 +134,15 @@ int main(int argc, char** argv) {
                     exit(EXIT_FAILURE);
                 }
                 else{
-                    printf("[Child %d] [%d] Child received %d!"WHITE"\n", i+1, my_pid, val);
+                    printf(BLUE"[Child "MAGENTA"%d"BLUE"] [%d] Child received "CYAN"%d"BLUE"!"WHITE"\n", i+1, my_pid, val);
                     val += 1;
-                    // sleep(5);
+                    sleep(5);
                     if (write(fd[i][CHILD_WRITE], &val, sizeof(val)) < 0)
                     {
                         perror("Child: Failed to write response value");
                         exit(EXIT_FAILURE);
                     }
-                    else printf("[Child %d] [%d] Child finished hard work, writing back %d\n", i+1 , my_pid, val);
+                    else printf(RED"[Child "MAGENTA"%d"RED"] [%d] Child finished hard work, writing back "CYAN"%d"WHITE"\n", i+1 , my_pid, val);
                 }
 
             }
@@ -200,12 +200,9 @@ int main(int argc, char** argv) {
                 buffer[n_read-1] = '\0';
             }
 
-            printf(BLUE"Got user input: '%s'"WHITE"\n", buffer);
-
-
             // help
             if (n_read == 5 && strncmp(buffer, "help", 4) == 0) {
-                printf(MAGENTA"Type a number to send job to a child!\n");
+                printf(MAGENTA"Type a number to send job to a child!"WHITE"\n");
             }
 
             // exit
@@ -217,6 +214,7 @@ int main(int argc, char** argv) {
                 }
                 kill(my_pid, SIGTERM);                         // error checking!
                 wait(NULL);                                 // error checking!
+                printf("All children terminated..\n");
 
                 exit(0);
             }
@@ -224,7 +222,6 @@ int main(int argc, char** argv) {
             // user entered integer
             else if (isNumber(buffer)){
                 val = atoi (buffer);
-                printf("GOT INTEGER\n");
                 int choose_pipe;
                 if (distribution == 0){
                     choose_pipe = index;
@@ -244,11 +241,11 @@ int main(int argc, char** argv) {
                     printf("Parent failed to read..\n");
                     exit(EXIT_FAILURE);
                 }
-                else printf("[Parent] received result from child %d --> %d\n", choose_pipe+1, val);
+                else printf(GREEN"[Parent] received result from child %d --> "CYAN"%d"WHITE"\n", choose_pipe+1, val);
                 // wait(NULL);
             }
             else{
-                printf(MAGENTA"Type a number to send job to a child!\n");
+                printf(MAGENTA"Type a number to send job to a child!"WHITE"\n");
             }
         }
         // someone has written bytes to the pipe, we can read without blocking
