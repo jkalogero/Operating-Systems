@@ -175,7 +175,6 @@ int main(int argc, char** argv) {
         // select only considers file descriptors that are smaller than maxfd
         maxfd = MAX(STDIN_FILENO,maxfd) + 1;    //pd[0][num_of_proc-1] is bigger than any other pid in pid array
 
-        // printf("maxfd = %d\n", maxfd);
 
         // wait until any of the input file descriptors are ready to receive
         int ready_fds = select(1000, &inset, NULL, NULL, NULL);
@@ -225,7 +224,7 @@ int main(int argc, char** argv) {
                 else if (distribution == 1){
                     choose_pipe = rand()%num_of_proc;
                 }
-                printf(CYAN"[Parent] Assigned %d to child %d"WHITE"\n", val, choose_pipe);
+                printf(CYAN"[Parent] Assigned %d to child %d"WHITE"\n", val, choose_pipe+1);
                 if (write(fd[choose_pipe][FATHER_WRITE], &val, sizeof(val)) != sizeof(val)){
                     perror("Parent: Failed to send value to child\n");
                     exit(EXIT_FAILURE);
@@ -237,7 +236,6 @@ int main(int argc, char** argv) {
                     exit(EXIT_FAILURE);
                 }
                 else printf(GREEN"[Parent] received result from child %d --> "CYAN"%d"WHITE"\n", choose_pipe+1, val);
-                // wait(NULL);
             }
             else{
                 printf(MAGENTA"Type a number to send job to a child!"WHITE"\n");
