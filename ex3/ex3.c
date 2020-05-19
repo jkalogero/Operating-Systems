@@ -229,13 +229,7 @@ int main(int argc, char** argv) {
                     perror("Parent: Failed to send value to child\n");
                     exit(EXIT_FAILURE);
                 }
-                // read response
-                len = read(fd[choose_pipe][FATHER_READ], &val, sizeof(val));
-                if (len <= 0){
-                    printf("Parent failed to read..\n");
-                    exit(EXIT_FAILURE);
-                }
-                else printf(GREEN"[Parent] received result from child %d --> "CYAN"%d"WHITE"\n", choose_pipe+1, val);
+            
             }
             else{
                 printf(MAGENTA"Type a number to send job to a child!"WHITE"\n");
@@ -247,9 +241,9 @@ int main(int argc, char** argv) {
                 int val;
                 int len_read = read(fd[i][FATHER_READ], &val, sizeof(int));
                 if (len_read <= 0){
-                    perror("Failed to read");
+                    perror("Parent failed to read...\n");
                 }
-                printf(MAGENTA"Got input from pipe: '%d'"WHITE"\n", val);
+                else printf(GREEN"[Parent] received result from child %d --> "CYAN"%d"WHITE"\n", i+1, val);
             }
         }
     }
