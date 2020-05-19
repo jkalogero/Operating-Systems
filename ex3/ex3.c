@@ -13,15 +13,13 @@
 #define STREQUAL(x, y) ( strncmp((x), (y), strlen(y) ) == 0 )
 
 
-// father (2) 3 --------------> 2 (3) child
-// father 0 (1) <-------------- (0) 1 child
+
 #define FATHER_READ     0
 #define CHILD_WRITE    1
 #define CHILD_READ     2
 #define FATHER_WRITE    3
 
 
-#define DEFAULT "\033[30;1m"
 #define RED "\033[31;1m"
 #define GREEN "\033[32m"
 #define YELLOW "\033[33m"
@@ -29,7 +27,6 @@
 #define MAGENTA "\033[35m"
 #define CYAN "\033[36m"
 #define WHITE "\033[37m"
-#define GRAY "\033[38;1m"
 
 #define MAX(a, b) ((a) > (b) ? (a) : (b))
 
@@ -74,7 +71,9 @@ int main(int argc, char** argv) {
     else if (argc == 2){
         num_of_proc = atoi(argv[1]);
         // check it is a positive number
-        if (num_of_proc <= 0) printf("Usage: <nChildren> [--random] [--round-robin]\n");
+        if (num_of_proc <= 0) {
+            printf("Usage: <nChildren> [--random] [--round-robin]\n");
+            return 0;}
         distribution = 0;
 
     }
@@ -87,7 +86,7 @@ int main(int argc, char** argv) {
         else {
             printf("Usage: <nChildren> [--random] [--round-robin]\n");
             return 0;
-                }
+        }
     }
     else {
         printf("Usage: <nChildren> [--random] [--round-robin]\n");
@@ -173,20 +172,21 @@ int main(int argc, char** argv) {
 
 
         // select only considers file descriptors that are smaller than maxfd
-        maxfd = MAX(STDIN_FILENO,maxfd) + 1;    //pd[0][num_of_proc-1] is bigger than any other pid in pid array
+        maxfd = MAX(STDIN_FILENO,maxfd) + 1;
 
 
         // wait until any of the input file descriptors are ready to receive
-        int ready_fds = select(1000, &inset, NULL, NULL, NULL);
+        int ready_fds = select(maxfd, &inset, NULL, NULL, NULL);
         if (ready_fds <= 0) {
             perror("select");
-            continue;                                       // just try again
+            continue;
         }
         // user has typed something, we can read from stdin without blocking
         if (FD_ISSET(STDIN_FILENO, &inset)) {
+            printf("GOT USER INPUT\n");
             char buffer[101];
-            int n_read = read(STDIN_FILENO, buffer, 100);   // error checking!
-            buffer[n_read] = '\0';                          // why?
+            int n_read = read(STDIN_FILENO, buffer, 100);
+            buffer[n_read] = '\0';
 
             // New-line is also read from the stream, discard it.
             if (n_read > 0 && buffer[n_read-1] == '\n') {
@@ -205,8 +205,8 @@ int main(int argc, char** argv) {
                     close(fd[i][FATHER_READ]);
                     close(fd[i][FATHER_WRITE]);
                 }
-                kill(my_pid, SIGTERM);                         // error checking!
-                wait(NULL);                                 // error checking!
+                kill(my_pid, SIGTERM);
+                wait(NULL);
                 printf(RED"All of my children are now dead...\nExiting."WHITE"\n");
 
                 exit(0);
@@ -245,8 +245,10 @@ int main(int argc, char** argv) {
         for (int i = 0; i < num_of_proc; i++){
             if (FD_ISSET(fd[i][FATHER_READ], &inset)) {
                 int val;
-                read(fd[i][FATHER_READ], &val, sizeof(int));                 // error checking!
-
+                int len_read = read(fd[i][FATHER_READ], &val, sizeof(int));
+                if (len_read <= 0){
+                    perror("Failed to read");
+                }
                 printf(MAGENTA"Got input from pipe: '%d'"WHITE"\n", val);
             }
         }
