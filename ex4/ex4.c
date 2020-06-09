@@ -93,6 +93,8 @@ int main(int argc, char **argv) {
     
     printf("Hostname is %s \n", hostname);
     printf("Current port is %d \n", PORT);
+
+    // construct server struct
     server.sin_family = AF_INET;    //domain
     server.sin_port = htons(PORT);  //port in acceptable form
     sockfd = socket(AF_INET, SOCK_STREAM, 0);
@@ -103,7 +105,8 @@ int main(int argc, char **argv) {
     struct hostent *he;
 	struct in_addr **addr_list;
 	int i;
-		
+    
+    // as arguments set hostname or IP
 	if ( (he = gethostbyname(hostname) ) == NULL) {
 		//gethostbyname failed
 		herror("gethostbyname");
@@ -114,14 +117,17 @@ int main(int argc, char **argv) {
 	
 	for(i = 0; addr_list[i] != NULL; i++) {
 		//Return the first one;
-		strcpy(ip , inet_ntoa(*addr_list[i]) );
+		strcpy(ip , inet_ntoa(*addr_list[i]) );     //convert addrlist to string and copy it to ip
 	}
-    server.sin_addr.s_addr = inet_addr(ip);
+    server.sin_addr.s_addr = inet_addr(ip);         //convert ip to acceptable form
     // deal with warning...
     if (connect(sockfd, (struct sockaddr *)&server, sizeof(server)) < 0){
         printf("Failed to connect to server..");
         return 1;
     }
+
+    //done constructing server struct.. ready to connect
+
     printf("Connected and waiting for commands!\n");
     printf("Enter the Message: \n");
     while(1){
@@ -129,7 +135,7 @@ int main(int argc, char **argv) {
         char buffer_write[BUF_SIZE] = {0};
         int n_read = read(STDIN_FILENO, buffer_read, BUF_SIZE-1);
         if (n_read < 0) perror("Error in reading...\n");
-        
+
         buffer_read[n_read] = '\0';
         if (n_read > 0 && buffer_read[n_read-1] == '\n') {
                 buffer_read[n_read-1] = '\0';
