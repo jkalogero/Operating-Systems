@@ -26,34 +26,16 @@
 
 
 
-int SocketSend(int hSocket,char* Rqst,short lenRqst)
+int SocketSend(int hSocket,char* Rqst,int lenRqst)
 {
     int shortRetval = -1;
-    /*struct timeval tv;
-    tv.tv_sec = 20;   //20 Secs Timeout 
-    tv.tv_usec = 0;
-    if(setsockopt(hSocket,SOL_SOCKET,SO_SNDTIMEO,(char *)&tv,sizeof(tv)) < 0)
-    {
-        printf("Time Out\n");
-        return -1;
-    } */
-    // shortRetval = send(hSocket, Rqst, lenRqst, 0);
     shortRetval = write(hSocket, Rqst, lenRqst);
     return shortRetval;
 }
 
-int SocketReceive(int hSocket,char* Rsp,short RvcSize)
+int SocketReceive(int hSocket,char* Rsp,int RvcSize)
 {
     int shortRetval = -1;
-    /*struct timeval tv;
-    tv.tv_sec = 20;  //20 Secs Timeout 
-    tv.tv_usec = 0;
-    if(setsockopt(hSocket, SOL_SOCKET, SO_RCVTIMEO,(char *)&tv,sizeof(tv)) < 0)
-    {
-        printf("Time Out\n");
-        return -1;
-    }  */
-    // shortRetval = recv(hSocket, Rsp, RvcSize, 0);
     shortRetval = read(hSocket, Rsp, RvcSize);
 
     return shortRetval;
@@ -70,9 +52,9 @@ void slice_str(const char * str, char * buffer, size_t start, size_t end){
 void eraseZeros(char * light){
     int n;
     if( ( n = strspn(light, "0" ) ) != 0 && light[n] != '\0' ) {       // strspn() - Reference 
-        printf("%s \n", &light[n]);
+        printf("%s \n", &light[n]);         //if no zeros
     } else {
-        printf("%s \n", &light[n]);
+        printf("%s \n", &light[n]);         //after erasing the zeros
     } 
 }
 
@@ -81,8 +63,6 @@ int main(int argc, char **argv) {
     int sockfd,read_size;
     bool debug_mode = false;
     int n;
-    char sender[100] = {0};
-    char receiver[200] = {0};
     char buffer_read[BUF_SIZE];
     char buffer_write[BUF_SIZE];
     char ip[100];
@@ -113,9 +93,13 @@ int main(int argc, char **argv) {
     
     printf("Hostname is %s \n", hostname);
     printf("Current port is %d \n", PORT);
-    server.sin_family = AF_INET;
-    server.sin_port = htons(PORT);
+    server.sin_family = AF_INET;    //domain
+    server.sin_port = htons(PORT);  //port in acceptable form
     sockfd = socket(AF_INET, SOCK_STREAM, 0);
+    if (sockfd < 0){
+        printf("Error creating the socket.\nExiting.\n");
+        return 0;
+    }
     struct hostent *he;
 	struct in_addr **addr_list;
 	int i;
@@ -133,6 +117,7 @@ int main(int argc, char **argv) {
 		strcpy(ip , inet_ntoa(*addr_list[i]) );
 	}
     server.sin_addr.s_addr = inet_addr(ip);
+    // deal with warning...
     if (connect(sockfd, (struct sockaddr *)&server, sizeof(server)) < 0){
         printf("Failed to connect to server..");
         return 1;
@@ -144,6 +129,7 @@ int main(int argc, char **argv) {
         char buffer_write[BUF_SIZE] = {0};
         int n_read = read(STDIN_FILENO, buffer_read, BUF_SIZE-1);
         if (n_read < 0) perror("Error in reading...\n");
+        
         buffer_read[n_read] = '\0';
         if (n_read > 0 && buffer_read[n_read-1] == '\n') {
                 buffer_read[n_read-1] = '\0';
@@ -164,8 +150,15 @@ int main(int argc, char **argv) {
         }
         // get
         else if (n_read == 4 && strncmp(buffer_read, "get", 4) == 0) {
-            SocketSend(sockfd, buffer_read, n_read);
+            if (SocketSend(sockfd, buffer_read, n_read) < 0){
+                printf("Error in sending through socket");
+                return 0;
+            }
             read_size = SocketReceive(sockfd, buffer_write, BUF_SIZE-1);
+            if (read_size < 0){
+                printf("Error in receiving through socket");
+                return 0;
+            }
             buffer_write[read_size-1] = '\0';           //change new line to end of string.
             if (debug_mode){
                 printf(YELLOW"[DEBUG] sent 'get'\n");
@@ -204,8 +197,17 @@ int main(int argc, char **argv) {
             printf("Timestamp is: %s"WHITE"\n", time_buffer);
         }
         else{
-            SocketSend(sockfd, buffer_read, n_read);
+            if (SocketSend(sockfd, buffer_read, n_read) < 0){
+                printf("Error in sending through socket");
+                return 0;
+            }
             read_size = SocketReceive(sockfd, buffer_write, BUF_SIZE-1);
+            if (read_size < 0){
+                printf("Error in receiving through socket");
+                return 0;
+            }
+            // change '\n' to '\0'
+            buffer_write[read_size-1] = '\0';
             if (debug_mode){
                 printf(YELLOW"[DEBUG] sent '%s'\n", buffer_read);
                 printf("[DEBUG] read '%s'\n", buffer_write);
